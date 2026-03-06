@@ -7,7 +7,16 @@
       "Bash(dart analyze:*)",
       "Bash(python3:*)",
       "Bash(python:*)",
-      "Bash(xargs cat)"
+      "Bash(xargs cat)",
+      "Bash(keytool:*)",
+      "Bash(where java)",
+      "Read(//c/Program Files/Java/**)",
+      "Read(//c/Program Files/Android/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(\"/c/Program Files \\(x86\\)/Common Files/Oracle/Java/java8path/java.exe\":*)",
+      "Read(//c/Program Files \\(x86\\)/Common Files/Oracle/Java/java8path/**)",
+      "Bash(ls \"/c/Program Files/Java/\"*/bin/keytool.exe)",
+      "Bash(\"/c/Program Files/Java/jre1.8.0_461/bin/keytool.exe\":*)"
     ]
   }
 }

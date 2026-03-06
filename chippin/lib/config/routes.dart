@@ -13,10 +13,12 @@ import '../screens/participants_screen.dart';
 import '../screens/add_items_screen.dart';
 import '../screens/split_items_screen.dart';
 import '../screens/paid_by_screen.dart';
+import '../screens/onboarding_screen.dart';
 import '../screens/summary_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final needsOnboarding = ref.watch(needsOnboardingProvider);
 
   return GoRouter(
     initialLocation: '/login',
@@ -26,11 +28,15 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isAuthenticated = authState.valueOrNull != null;
       final isLoginRoute = state.matchedLocation == '/login';
+      final isOnboardingRoute = state.matchedLocation == '/onboarding';
 
       if (!isAuthenticated && !isLoginRoute) {
         return '/login';
       }
-      if (isAuthenticated && isLoginRoute) {
+      if (isAuthenticated && needsOnboarding && !isOnboardingRoute) {
+        return '/onboarding';
+      }
+      if (isAuthenticated && !needsOnboarding && (isLoginRoute || isOnboardingRoute)) {
         return '/home';
       }
       return null;
@@ -39,6 +45,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) {

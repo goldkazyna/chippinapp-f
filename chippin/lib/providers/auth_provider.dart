@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
+
+final needsOnboardingProvider = StateProvider<bool>((ref) => false);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient();
@@ -57,7 +60,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
   }
 
   /// OAuth login via provider (google / apple / telegram)
-  Future<void> socialLogin({
+  /// Returns true if this is a new user (needs onboarding).
+  Future<bool> socialLogin({
     required String provider,
     required String token,
     String? telegramId,
@@ -74,8 +78,23 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       await _apiClient.setToken(data['token'] as String);
       final user = User.fromJson(data['user'] as Map<String, dynamic>);
       state = AsyncValue.data(user);
+
+      // Check if onboarding was completed for this user
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingDone = prefs.getBool('onboarding_done_${user.id}') ?? false;
+      return !onboardingDone;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      return false;
+    }
+  }
+
+  /// Mark onboarding as completed for current user
+  Future<void> completeOnboarding() async {
+    final user = state.valueOrNull;
+    if (user != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('onboarding_done_${user.id}', true);
     }
   }
 
