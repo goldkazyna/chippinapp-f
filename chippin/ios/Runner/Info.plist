@@ -47,6 +47,17 @@
 	<string>We need photo library access to select receipt images</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need microphone access to add items by voice</string>
+	<key>GIDClientID</key>
+	<string>884588420497-gukcgkgbrchk551016bph2fkjpf39sum.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.884588420497-gukcgkgbrchk551016bph2fkjpf39sum</string>
+			</array>
+		</dict>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

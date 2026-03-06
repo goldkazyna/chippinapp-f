@@ -23,7 +23,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
     try {
-      final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+      final googleSignIn = GoogleSignIn(
+        clientId: '884588420497-gukcgkgbrchk551016bph2fkjpf39sum.apps.googleusercontent.com',
+        serverClientId: '884588420497-ioltpm8r1am5tvu182h7slof98921e9q.apps.googleusercontent.com',
+        scopes: ['email', 'profile'],
+      );
       final account = await googleSignIn.signIn();
       if (account == null) {
         setState(() => _loading = false);
