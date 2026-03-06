@@ -45,6 +45,8 @@
 	<string>We need camera access to scan receipts</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need photo library access to select receipt images</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need microphone access to add items by voice</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
