@@ -7,24 +7,29 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      groups:
-        - app_store_credentials
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.chippin.chippin
+        certificate: apple_distribution
+        provisioning_profile: chippin_app_store
     scripts:
       - name: Set up code signing settings on Xcode project
         script: |
-          cd chippin
+          cd chippin/ios
           xcode-project use-profiles
       - name: Get Flutter packages
         script: |
           cd chippin
           flutter packages pub get
+      - name: Install CocoaPods
+        script: |
+          cd chippin/ios
+          pod install
       - name: Build IPA
         script: |
           cd chippin
-          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - chippin/build/ios/ipa/*.ipa
     publishing:
