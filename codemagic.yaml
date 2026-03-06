@@ -24,7 +24,9 @@ workflows:
       - name: Build IPA
         script: |
           cd chippin
+          BUILD_NUMBER=$(($(app-store-connect get-latest-testflight-build-number "com.chippin.chippin") + 1))
           flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
             --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - chippin/build/ios/ipa/*.ipa
