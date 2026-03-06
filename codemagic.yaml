@@ -19,10 +19,6 @@ workflows:
         script: |
           cd chippin
           flutter packages pub get
-      - name: Install CocoaPods
-        script: |
-          cd chippin/ios
-          pod install
       - name: Build IPA
         script: |
           cd chippin
