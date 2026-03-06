@@ -27,6 +27,11 @@ workflows:
     artifacts:
       - chippin/build/ios/ipa/*.ipa
     publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - External Testers
       email:
         recipients:
           - goldkazyna@gmail.com
