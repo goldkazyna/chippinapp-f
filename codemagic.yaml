@@ -10,8 +10,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.chippin.chippin
-        certificate: apple_distribution
-        provisioning_profile: chippin_app_store
     scripts:
       - name: Set up code signing settings on Xcode project
         script: |
