@@ -60,10 +60,11 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
   }
 
   /// OAuth login via provider (google / apple / telegram)
-  /// Returns true if this is a new user (needs onboarding).
-  Future<bool> socialLogin({
+  /// Sets needsOnboarding BEFORE auth state to avoid race condition with router.
+  Future<void> socialLogin({
     required String provider,
     required String token,
+    required StateController<bool> onboardingController,
     String? telegramId,
     String? name,
   }) async {
@@ -77,15 +78,17 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       );
       await _apiClient.setToken(data['token'] as String);
       final user = User.fromJson(data['user'] as Map<String, dynamic>);
-      state = AsyncValue.data(user);
 
-      // Check if onboarding was completed for this user
+      // Check onboarding BEFORE setting auth state (to avoid redirect race)
       final prefs = await SharedPreferences.getInstance();
       final onboardingDone = prefs.getBool('onboarding_done_${user.id}') ?? false;
-      return !onboardingDone;
+      if (!onboardingDone) {
+        onboardingController.state = true;
+      }
+
+      state = AsyncValue.data(user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      return false;
     }
   }
 

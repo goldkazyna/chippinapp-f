@@ -37,13 +37,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final accessToken = auth.accessToken;
       if (accessToken == null) throw Exception('No access token');
 
-      final isNew = await ref.read(authStateProvider.notifier).socialLogin(
+      await ref.read(authStateProvider.notifier).socialLogin(
             provider: 'google',
             token: accessToken,
+            onboardingController: ref.read(needsOnboardingProvider.notifier),
           );
-      if (isNew) {
-        ref.read(needsOnboardingProvider.notifier).state = true;
-      }
     } catch (e) {
       setState(() => _error = 'Sign in failed. Please try again.');
     } finally {
