@@ -708,6 +708,8 @@ class _AdjustmentsScreenState extends ConsumerState<AdjustmentsScreen> {
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   isDense: true,
+                  filled: true,
+                  fillColor: Colors.transparent,
                 ),
               ),
             ),
