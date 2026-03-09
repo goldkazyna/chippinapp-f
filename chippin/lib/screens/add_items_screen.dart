@@ -451,7 +451,7 @@ class _AddItemsScreenState extends ConsumerState<AddItemsScreen> {
                       SizedBox(
                         width: double.infinity, height: 56,
                         child: ElevatedButton(
-                          onPressed: canProceed ? () => context.push('/bills/${widget.billId}/split') : null,
+                          onPressed: canProceed ? () => context.push('/bills/${widget.billId}/adjustments') : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.accent, foregroundColor: AppTheme.accentText,
                             disabledBackgroundColor: AppTheme.accent.withValues(alpha: 0.35),

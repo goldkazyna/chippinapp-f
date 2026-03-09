@@ -14,6 +14,7 @@ import '../screens/add_items_screen.dart';
 import '../screens/split_items_screen.dart';
 import '../screens/paid_by_screen.dart';
 import '../screens/onboarding_screen.dart';
+import '../screens/adjustments_screen.dart';
 import '../screens/summary_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -126,6 +127,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final id = int.parse(state.pathParameters['id']!);
           return AddItemsScreen(billId: id);
+        },
+      ),
+      GoRoute(
+        path: '/bills/:id/adjustments',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return AdjustmentsScreen(billId: id);
         },
       ),
       GoRoute(
