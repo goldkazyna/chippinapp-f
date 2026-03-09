@@ -49,10 +49,17 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
   }
 
   String _formatAmount(double amount, String currency) {
-    final intPart = amount.toInt();
-    final formatted = intPart.toString().replaceAllMapped(
+    if (amount == amount.truncateToDouble()) {
+      // Whole number — no decimals
+      final formatted = amount.toInt().toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]} ');
+      return '$formatted $currency';
+    }
+    // Has decimals — show 2 decimal places
+    final parts = amount.toStringAsFixed(2).split('.');
+    final intFormatted = int.parse(parts[0]).toString().replaceAllMapped(
         RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]} ');
-    return '$formatted $currency';
+    return '$intFormatted.${parts[1]} $currency';
   }
 
   String _getInitials(String name) {
@@ -414,6 +421,91 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                         }),
                         const SizedBox(height: 24),
 
+                        // Adjustments breakdown (if any)
+                        ...() {
+                          final adjustments = (_summary!['adjustments'] as List<dynamic>?) ?? [];
+                          if (adjustments.isEmpty) return <Widget>[];
+
+                          final subtotal = toDouble(_summary!['subtotal'] ?? _summary!['total']);
+
+                          String adjustmentLabel(Map<String, dynamic> adj) {
+                            final type = adj['type'] as String? ?? '';
+                            final calcMode = adj['calc_mode'] as String? ?? 'fixed';
+                            final value = toDouble(adj['value'] ?? 0);
+                            String name;
+                            switch (type) {
+                              case 'tip': name = s.tips; break;
+                              case 'service': name = s.serviceFee; break;
+                              case 'tax': name = s.tax; break;
+                              case 'delivery': name = s.delivery; break;
+                              case 'discount': name = s.discount; break;
+                              default: name = type;
+                            }
+                            if (calcMode == 'percent') {
+                              final sign = type == 'discount' ? '-' : '+';
+                              final pct = value == value.truncateToDouble()
+                                  ? value.toInt().toString()
+                                  : value.toStringAsFixed(1);
+                              return '$name ($sign$pct%)';
+                            }
+                            return name;
+                          }
+
+                          return <Widget>[
+                            // Subtotal line
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: const BoxDecoration(
+                                border: Border(top: BorderSide(color: AppTheme.border)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(s.subtotal,
+                                      style: GoogleFonts.manrope(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.textSecondary)),
+                                  Text(_formatAmount(subtotal, currency),
+                                      style: GoogleFonts.manrope(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.textSecondary)),
+                                ],
+                              ),
+                            ),
+                            // Each adjustment
+                            ...adjustments.map((a) {
+                              final adj = a as Map<String, dynamic>;
+                              final amount = toDouble(adj['amount'] ?? 0);
+                              final type = adj['type'] as String? ?? '';
+                              final isDiscount = type == 'discount';
+                              final sign = isDiscount ? '-' : '+';
+                              final displayAmount = amount.abs();
+                              final label = adjustmentLabel(adj);
+                              return Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(label,
+                                        style: GoogleFonts.manrope(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDiscount ? AppTheme.error : AppTheme.textSecondary)),
+                                    Text('$sign${_formatAmount(displayAmount, currency)}',
+                                        style: GoogleFonts.manrope(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDiscount ? AppTheme.error : AppTheme.textPrimary)),
+                                  ],
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 8),
+                          ];
+                        }(),
+
                         // TOTAL section
                         Text(s.total,
                             style: GoogleFonts.manrope(
@@ -439,7 +531,12 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
                                       color: AppTheme.textSecondary)),
-                              Text(_formatAmount(bill.total, currency),
+                              Text(
+                                  _formatAmount(
+                                    ((_summary!['adjustments'] as List<dynamic>?) ?? []).isNotEmpty
+                                        ? toDouble(_summary!['total'])
+                                        : bill.total,
+                                    currency),
                                   style: GoogleFonts.manrope(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w700,
