@@ -134,6 +134,20 @@ class AppStrings {
   final String settled;
   final String pending;
 
+  // Adjustments
+  final String adjustments;
+  final String tips;
+  final String serviceFee;
+  final String tax;
+  final String delivery;
+  final String discount;
+  final String subtotal;
+  final String skipAdjustments;
+  final String proportional;
+  final String equalSplit;
+  final String customAmount;
+  final String ofBill;
+
   // Profile
   final String profile;
   final String preferences;
@@ -253,6 +267,18 @@ class AppStrings {
     required this.noBillsFound,
     required this.settled,
     required this.pending,
+    required this.adjustments,
+    required this.tips,
+    required this.serviceFee,
+    required this.tax,
+    required this.delivery,
+    required this.discount,
+    required this.subtotal,
+    required this.skipAdjustments,
+    required this.proportional,
+    required this.equalSplit,
+    required this.customAmount,
+    required this.ofBill,
     required this.profile,
     required this.preferences,
     required this.currency,
@@ -380,6 +406,18 @@ class AppStringsEn extends AppStrings {
           noBillsFound: 'No bills found',
           settled: 'SETTLED',
           pending: 'PENDING',
+          adjustments: 'Extras',
+          tips: 'Tips',
+          serviceFee: 'Service Fee',
+          tax: 'Tax',
+          delivery: 'Delivery',
+          discount: 'Discount',
+          subtotal: 'Subtotal',
+          skipAdjustments: 'Skip',
+          proportional: 'Proportional',
+          equalSplit: 'Equal',
+          customAmount: 'Custom',
+          ofBill: 'of bill',
           profile: 'Profile',
           preferences: 'PREFERENCES',
           currency: 'Currency',
@@ -507,6 +545,18 @@ class AppStringsRu extends AppStrings {
           noBillsFound: 'Счета не найдены',
           settled: 'ОПЛАЧЕН',
           pending: 'ОЖИДАЕТ',
+          adjustments: 'Доп. сборы',
+          tips: 'Чаевые',
+          serviceFee: 'Обслуживание',
+          tax: 'Налог',
+          delivery: 'Доставка',
+          discount: 'Скидка',
+          subtotal: 'Подытог',
+          skipAdjustments: 'Пропустить',
+          proportional: 'Пропорционально',
+          equalSplit: 'Поровну',
+          customAmount: 'Другой',
+          ofBill: 'от счёта',
           profile: 'Профиль',
           preferences: 'НАСТРОЙКИ',
           currency: 'Валюта',
