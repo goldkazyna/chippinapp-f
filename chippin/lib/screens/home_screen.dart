@@ -236,9 +236,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  /// Group totals by currency, with user's default currency first
+  Map<String, double> _groupByCurrency(List<Bill> bills) {
+    final map = <String, double>{};
+    for (final bill in bills) {
+      map[bill.currency] = (map[bill.currency] ?? 0) + bill.total;
+    }
+    // Sort: user's default currency first, then alphabetically
+    final defaultCurrency =
+        ref.read(authStateProvider).valueOrNull?.defaultCurrency ?? 'KZT';
+    final sorted = Map.fromEntries(
+      map.entries.toList()
+        ..sort((a, b) {
+          if (a.key == defaultCurrency) return -1;
+          if (b.key == defaultCurrency) return 1;
+          return a.key.compareTo(b.key);
+        }),
+    );
+    return sorted;
+  }
+
   Widget _buildBillsList(List<Bill> bills, AppStrings s) {
-    final totalSpent = bills.fold(0.0, (sum, b) => sum + b.total);
-    final currency = bills.isNotEmpty ? bills.first.currency : 'KZT';
+    final currencyTotals = _groupByCurrency(bills);
     final groups = _groupBills(bills);
 
     return RefreshIndicator(
@@ -250,20 +269,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: 20),
 
           // Stats row
-          Row(children: [
-            Expanded(
-                child: _StatBox(
-                    value: '${bills.length}', label: s.bills)),
-            const SizedBox(width: 10),
-            Expanded(
-              flex: 2,
-              child: _StatBox(
-                value: _formatAmount(totalSpent, currency),
-                label: s.totalSpent,
-                valueColor: AppTheme.accent,
-              ),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                    child: _StatBox(
+                        value: '${bills.length}', label: s.bills)),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: _CurrencyStatBox(
+                    currencyTotals: currencyTotals,
+                    label: s.totalSpent,
+                    formatAmount: _formatAmount,
+                  ),
+                ),
+              ],
             ),
-          ]),
+          ),
           const SizedBox(height: 8),
 
           // Grouped bills
@@ -295,9 +319,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildMonthHeader(_MonthGroup month, {bool isFirst = false}) {
     final isExpanded = _expandedMonths.contains(month.key);
     final totalBills = month.days.fold(0, (sum, d) => sum + d.bills.length);
-    final totalAmount = month.days.fold(0.0, (sum, d) =>
-        sum + d.bills.fold(0.0, (s, b) => s + b.total));
-    final currency = month.days.first.bills.first.currency;
+    final allMonthBills = month.days.expand((d) => d.bills).toList();
+    final monthCurrencies = _groupByCurrency(allMonthBills);
     final s = ref.read(l10nProvider);
 
     return GestureDetector(
@@ -333,9 +356,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         letterSpacing: 0.5)),
                 const Spacer(),
                 if (!isExpanded)
-                  Text('${s.nBills(totalBills)} · ${_formatAmount(totalAmount, currency)}',
+                  Flexible(
+                    child: Text(
+                      '${s.nBills(totalBills)} · ${monthCurrencies.entries.map((e) => _formatAmount(e.value, e.key)).join(' · ')}',
                       style: GoogleFonts.manrope(
-                          fontSize: 12, color: AppTheme.textMuted)),
+                          fontSize: 12, color: AppTheme.textMuted),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -481,21 +509,128 @@ class _StatBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.border),
       ),
-      child: Column(children: [
-        Text(value,
-            style: GoogleFonts.manrope(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: valueColor ?? AppTheme.textPrimary)),
-        const SizedBox(height: 2),
-        Text(label,
-            style: GoogleFonts.manrope(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.textMuted,
-                letterSpacing: 0.5)),
-      ]),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(value,
+              style: GoogleFonts.manrope(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: valueColor ?? AppTheme.textPrimary)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: GoogleFonts.manrope(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textMuted,
+                  letterSpacing: 0.5)),
+        ],
+      ),
     );
+  }
+}
+
+class _CurrencyStatBox extends StatelessWidget {
+  final Map<String, double> currencyTotals;
+  final String label;
+  final String Function(double, String) formatAmount;
+
+  const _CurrencyStatBox({
+    required this.currencyTotals,
+    required this.label,
+    required this.formatAmount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final count = currencyTotals.length;
+    final entries = currencyTotals.entries.toList();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (count <= 1) _buildSingle(entries),
+          if (count == 2 || count == 3) _buildColumn(entries, count),
+          if (count >= 4) _buildGrid(entries),
+          const SizedBox(height: 2),
+          Text(label,
+              style: GoogleFonts.manrope(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textMuted,
+                  letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
+
+  /// 1 currency — large font
+  Widget _buildSingle(List<MapEntry<String, double>> entries) {
+    final e = entries.isNotEmpty ? entries.first : const MapEntry('KZT', 0.0);
+    return Text(
+      formatAmount(e.value, e.key),
+      style: GoogleFonts.manrope(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: AppTheme.accent),
+    );
+  }
+
+  /// 2-3 currencies — column, medium font
+  Widget _buildColumn(List<MapEntry<String, double>> entries, int count) {
+    final fontSize = count == 2 ? 15.0 : 13.0;
+    return Column(
+      children: entries
+          .map((e) => Text(
+                formatAmount(e.value, e.key),
+                style: GoogleFonts.manrope(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.accent),
+              ))
+          .toList(),
+    );
+  }
+
+  /// 4-5 currencies — 2 per row, small font
+  Widget _buildGrid(List<MapEntry<String, double>> entries) {
+    final rows = <Widget>[];
+    for (var i = 0; i < entries.length; i += 2) {
+      final left = entries[i];
+      final right = i + 1 < entries.length ? entries[i + 1] : null;
+      rows.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            formatAmount(left.value, left.key),
+            style: GoogleFonts.manrope(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.accent),
+          ),
+          if (right != null) ...[
+            Text('  ·  ',
+                style: GoogleFonts.manrope(
+                    fontSize: 12, color: AppTheme.textMuted)),
+            Text(
+              formatAmount(right.value, right.key),
+              style: GoogleFonts.manrope(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.accent),
+            ),
+          ],
+        ],
+      ));
+    }
+    return Column(children: rows);
   }
 }
 

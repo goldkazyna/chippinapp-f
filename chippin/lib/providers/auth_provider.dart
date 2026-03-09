@@ -16,10 +16,16 @@ final authServiceProvider = Provider<AuthService>((ref) {
 
 final authStateProvider =
     StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((ref) {
-  return AuthNotifier(
+  final apiClient = ref.watch(apiClientProvider);
+  final notifier = AuthNotifier(
     ref.watch(authServiceProvider),
-    ref.watch(apiClientProvider),
+    apiClient,
   );
+  // Auto-check saved token on startup
+  notifier.checkAuth();
+  // Wire up 401 handler to clear auth state (token already deleted by interceptor)
+  apiClient.onUnauthorized = () => notifier.forceLogout();
+  return notifier;
 });
 
 class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
@@ -27,7 +33,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
   final ApiClient _apiClient;
 
   AuthNotifier(this._authService, this._apiClient)
-      : super(const AsyncValue.data(null));
+      : super(const AsyncValue.loading());
 
   /// Check if we have a saved token → load profile
   Future<void> checkAuth() async {
@@ -36,13 +42,13 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       state = const AsyncValue.data(null);
       return;
     }
-    state = const AsyncValue.loading();
+    // state is already loading from constructor
     try {
       final user = await _authService.getProfile();
       state = AsyncValue.data(user);
-    } catch (e, st) {
+    } catch (_) {
       await _apiClient.clearToken();
-      state = AsyncValue.error(e, st);
+      state = const AsyncValue.data(null);
     }
   }
 
@@ -106,9 +112,17 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     state = AsyncValue.data(user);
   }
 
-  /// Logout
+  /// Logout (calls backend to revoke token)
   Future<void> logout() async {
-    await _authService.logout();
+    try {
+      await _authService.logout();
+    } catch (_) {}
+    await _apiClient.clearToken();
+    state = const AsyncValue.data(null);
+  }
+
+  /// Force logout locally (e.g. on 401, no API call)
+  void forceLogout() {
     state = const AsyncValue.data(null);
   }
 

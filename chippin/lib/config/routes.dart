@@ -21,14 +21,28 @@ final routerProvider = Provider<GoRouter>((ref) {
   final needsOnboarding = ref.watch(needsOnboardingProvider);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
     errorBuilder: (context, state) => _ErrorDiagScreen(
       error: 'Route error: ${state.error}\nLocation: ${state.matchedLocation}\nPath: ${state.uri}',
     ),
     redirect: (context, state) {
-      final isAuthenticated = authState.valueOrNull != null;
+      final isSplash = state.matchedLocation == '/';
       final isLoginRoute = state.matchedLocation == '/login';
       final isOnboardingRoute = state.matchedLocation == '/onboarding';
+
+      // While checking saved token, stay on splash
+      if (authState.isLoading) {
+        return isSplash ? null : '/';
+      }
+
+      final isAuthenticated = authState.valueOrNull != null;
+
+      // After auth check resolved, leave splash
+      if (isSplash) {
+        if (isAuthenticated && needsOnboarding) return '/onboarding';
+        if (isAuthenticated) return '/home';
+        return '/login';
+      }
 
       if (!isAuthenticated && !isLoginRoute) {
         return '/login';
@@ -42,6 +56,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const Scaffold(
+          backgroundColor: Color(0xFF0A0A0F),
+          body: Center(
+            child: CircularProgressIndicator(color: Color(0xFF6CFFB3)),
+          ),
+        ),
+      ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),

@@ -35,20 +35,31 @@ class _SplitItemsScreenState extends ConsumerState<SplitItemsScreen> {
     return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
   }
 
-  String _formatAmount(double amount) {
+  String _formatAmount(double amount, String currency) {
+    String num;
     if (amount == amount.truncateToDouble()) {
-      return amount.toInt().toString().replaceAllMapped(
+      num = amount.toInt().toString().replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]} ');
+    } else {
+      num = amount.toStringAsFixed(2);
     }
-    return amount.toStringAsFixed(2);
+    return '$num $currency';
   }
 
-  String _itemSubtitle(BillItem item) {
-    if (item.splits.isEmpty) {
-      return '${item.quantity} × ${_formatAmount(item.pricePerUnit)}';
+  String _itemSubtitle(BillItem item, String currency) {
+    String price;
+    if (item.pricePerUnit == item.pricePerUnit.truncateToDouble()) {
+      price = item.pricePerUnit.toInt().toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]} ');
+    } else {
+      price = item.pricePerUnit.toStringAsFixed(2);
     }
-    final names = item.splits.map((s) => s.participantName ?? 'Unknown').toSet();
-    return names.join(', ');
+    return '${item.quantity} × $price $currency';
+  }
+
+  List<String> _itemParticipantNames(BillItem item) {
+    if (item.splits.isEmpty) return [];
+    return item.splits.map((s) => s.participantName ?? '?').toSet().toList();
   }
 
   void _openSplitSheet(Bill bill, BillItem item, AppStrings s) {
@@ -58,6 +69,7 @@ class _SplitItemsScreenState extends ConsumerState<SplitItemsScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _SplitBottomSheet(
         item: item,
+        currency: bill.currency,
         participants: bill.participants,
         getInitials: _getInitials,
         strings: s,
@@ -155,8 +167,9 @@ class _SplitItemsScreenState extends ConsumerState<SplitItemsScreen> {
                       final item = items[index];
                       return _ItemSplitCard(
                         name: item.name,
-                        meta: _itemSubtitle(item),
-                        total: _formatAmount(item.total),
+                        meta: _itemSubtitle(item, bill.currency),
+                        participantNames: _itemParticipantNames(item),
+                        total: _formatAmount(item.total, bill.currency),
                         isAssigned: item.isSplit,
                         onTap: () => _openSplitSheet(bill, item, s),
                       );
@@ -172,7 +185,7 @@ class _SplitItemsScreenState extends ConsumerState<SplitItemsScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                         Text(s.total, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
-                        Text(_formatAmount(bill.total), style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, letterSpacing: -0.3)),
+                        Text(_formatAmount(bill.total, bill.currency), style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, letterSpacing: -0.3)),
                       ]),
                     ),
                     const SizedBox(height: 14),
@@ -208,10 +221,11 @@ class _SplitItemsScreenState extends ConsumerState<SplitItemsScreen> {
 
 class _ItemSplitCard extends StatelessWidget {
   final String name, meta, total;
+  final List<String> participantNames;
   final bool isAssigned;
   final VoidCallback onTap;
 
-  const _ItemSplitCard({required this.name, required this.meta, required this.total, required this.isAssigned, required this.onTap});
+  const _ItemSplitCard({required this.name, required this.meta, required this.participantNames, required this.total, required this.isAssigned, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +238,7 @@ class _ItemSplitCard extends StatelessWidget {
           color: AppTheme.surface, borderRadius: BorderRadius.circular(12),
           border: Border.all(color: isAssigned ? AppTheme.accent.withValues(alpha: 0.3) : AppTheme.border),
         ),
-        child: Row(children: [
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Container(
             width: 28, height: 28,
             decoration: BoxDecoration(
@@ -238,13 +252,28 @@ class _ItemSplitCard extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(name, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
             const SizedBox(height: 4),
-            Row(children: [
-              Text(meta, style: GoogleFonts.manrope(fontSize: 12, color: isAssigned ? AppTheme.accent : AppTheme.textMuted)),
-              const Spacer(),
-              Text(total, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-            ]),
+            if (participantNames.isEmpty)
+              Text(meta, style: GoogleFonts.manrope(fontSize: 12, color: AppTheme.textMuted))
+            else
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: participantNames.map((name) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    name,
+                    style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w500, color: AppTheme.accent),
+                  ),
+                )).toList(),
+              ),
           ])),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
+          Text(total, style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+          const SizedBox(width: 4),
           const Icon(Icons.chevron_right_rounded, size: 20, color: AppTheme.textMuted),
         ]),
       ),
@@ -256,13 +285,14 @@ class _ItemSplitCard extends StatelessWidget {
 
 class _SplitBottomSheet extends StatefulWidget {
   final BillItem item;
+  final String currency;
   final List<Participant> participants;
   final String Function(String) getInitials;
   final AppStrings strings;
   final Future<void> Function() onSplitEqual;
   final Future<void> Function(List<Map<String, dynamic>> splits) onSplitCustom;
 
-  const _SplitBottomSheet({required this.item, required this.participants, required this.getInitials, required this.strings, required this.onSplitEqual, required this.onSplitCustom});
+  const _SplitBottomSheet({required this.item, required this.currency, required this.participants, required this.getInitials, required this.strings, required this.onSplitEqual, required this.onSplitCustom});
 
   @override
   State<_SplitBottomSheet> createState() => _SplitBottomSheetState();
@@ -323,8 +353,9 @@ class _SplitBottomSheetState extends State<_SplitBottomSheet> {
     } else if (_mode == 'choose') {
       List<Map<String, dynamic>> splits;
       if (widget.item.quantity == 1) {
-        // Each checked person gets quantity: 1
-        splits = _chosenPeopleIds.map((id) => {'participant_id': id, 'quantity': 1}).toList();
+        // Split equally among chosen people (fractional quantity)
+        final perPerson = 1.0 / _chosenPeopleIds.length;
+        splits = _chosenPeopleIds.map((id) => {'participant_id': id, 'quantity': perPerson}).toList();
       } else {
         // Use assigned quantities
         splits = _chosenQty.entries
@@ -362,7 +393,7 @@ class _SplitBottomSheetState extends State<_SplitBottomSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.border)),
-              child: Text('${widget.item.quantity} × ${widget.item.pricePerUnit.toStringAsFixed(0)}', style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
+              child: Text('${widget.item.quantity} × ${widget.item.pricePerUnit.toStringAsFixed(0)} ${widget.currency}', style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textSecondary)),
             ),
             const SizedBox(height: 20),
 
