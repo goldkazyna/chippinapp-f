@@ -1,4 +1,5 @@
 import '../utils/json_converters.dart';
+import 'bill_adjustment.dart';
 import 'participant.dart';
 import 'bill_item.dart';
 
@@ -11,6 +12,7 @@ class Bill {
   final int? paidByParticipantId;
   final List<Participant> participants;
   final List<BillItem> items;
+  final List<BillAdjustment> adjustments;
   // From list endpoint only
   final int? participantsCount;
   final int? itemsCount;
@@ -25,6 +27,7 @@ class Bill {
     this.paidByParticipantId,
     this.participants = const [],
     this.items = const [],
+    this.adjustments = const [],
     this.participantsCount,
     this.itemsCount,
     this.createdAt,
@@ -43,6 +46,10 @@ class Bill {
             [],
         items: (json['items'] as List<dynamic>?)
                 ?.map((e) => BillItem.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        adjustments: (json['adjustments'] as List<dynamic>?)
+                ?.map((e) => BillAdjustment.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
         participantsCount: json['participants_count'] as int?,

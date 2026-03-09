@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
 import '../models/bill.dart';
+import '../models/bill_adjustment.dart';
 import '../models/participant.dart';
 import '../models/bill_item.dart';
 import 'api_client.dart';
@@ -182,6 +183,15 @@ class BillService {
     );
     final List<dynamic> items = response.data['data']['items'];
     return items.cast<Map<String, dynamic>>();
+  }
+
+  // ── Adjustments ──────────────────────────────────────────────────────
+
+  /// POST /api/bills/{billId}/adjustments
+  Future<void> syncAdjustments(int billId, List<BillAdjustment> adjustments) async {
+    await _apiClient.dio.post('/bills/$billId/adjustments', data: {
+      'adjustments': adjustments.map((a) => a.toJson()).toList(),
+    });
   }
 
   // ── Splitting ──────────────────────────────────────────────────────────
