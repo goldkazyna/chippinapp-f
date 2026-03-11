@@ -9,26 +9,10 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.chippin.chippin
     scripts:
-      - name: Set up keychain and certificates
-        script: |
-          keychain initialize
-          app-store-connect fetch-signing-files com.chippin.chippin \
-            --type IOS_APP_STORE \
-            --platform IOS \
-            --strict-match-identifier \
-            --create
-          keychain add-certificates
-      - name: Install provisioning profile from repo
-        script: |
-          # Remove any auto-downloaded profiles
-          rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision
-          # Install our profile with Sign in with Apple capability
-          PROFILE_UUID=$(security cms -D -i chippin/ios/profiles/Chippin_Distribution.mobileprovision | grep -A1 UUID | grep string | sed 's/.*<string>//' | sed 's/<\/string>.*//')
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp chippin/ios/profiles/Chippin_Distribution.mobileprovision \
-            ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
-          echo "Installed profile with UUID: ${PROFILE_UUID}"
       - name: Set up code signing settings on Xcode project
         script: |
           cd chippin/ios
