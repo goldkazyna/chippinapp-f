@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../config/l10n.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
@@ -50,8 +53,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signInWithApple() async {
-    // TODO: implement Apple Sign In
-    setState(() => _error = 'Apple Sign In is not yet available.');
+    if (!Platform.isIOS) {
+      setState(() => _error = 'Apple Sign In is only available on iOS.');
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final identityToken = credential.identityToken;
+      if (identityToken == null) throw Exception('No identity token');
+
+      // Apple only sends name on first sign-in, build it if available
+      String? name;
+      if (credential.givenName != null || credential.familyName != null) {
+        name = [credential.givenName, credential.familyName]
+            .where((s) => s != null && s.isNotEmpty)
+            .join(' ');
+        if (name.isEmpty) name = null;
+      }
+
+      await ref.read(authStateProvider.notifier).socialLogin(
+            provider: 'apple',
+            token: identityToken,
+            name: name,
+            onboardingController: ref.read(needsOnboardingProvider.notifier),
+          );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code != AuthorizationErrorCode.canceled) {
+        setState(() => _error = 'Apple Sign In failed. Please try again.');
+      }
+    } catch (e) {
+      setState(() => _error = 'Apple Sign In failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _signInWithTelegram() async {
