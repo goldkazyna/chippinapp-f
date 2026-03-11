@@ -16,12 +16,27 @@ workflows:
       - name: Set up keychain
         script: |
           keychain initialize
-      - name: Fetch signing files
+      - name: Delete old API profiles and fetch fresh
         script: |
+          # List and delete all existing App Store profiles for our bundle ID via API
+          app-store-connect list-profiles \
+            --bundle-id-identifier com.chippin.chippin \
+            --profile-type IOS_APP_STORE \
+            --json | python3 -c "
+          import json, sys, subprocess
+          profiles = json.load(sys.stdin)
+          for p in profiles:
+              pid = p.get('id')
+              name = p.get('attributes', {}).get('name', '')
+              print(f'Deleting profile: {name} ({pid})')
+              subprocess.run(['app-store-connect', 'delete-profile', pid])
+          " || true
+          # Now fetch fresh - will create new profile with current capabilities
           app-store-connect fetch-signing-files com.chippin.chippin \
             --type IOS_APP_STORE \
             --platform IOS \
-            --strict-match-identifier
+            --strict-match-identifier \
+            --create
           keychain add-certificates
       - name: List fetched profiles
         script: |
