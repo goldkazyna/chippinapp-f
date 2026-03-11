@@ -8,6 +8,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../config/l10n.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
+import 'telegram_auth_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -99,8 +100,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signInWithTelegram() async {
-    // TODO: implement Telegram Login
-    setState(() => _error = 'Telegram Login is not yet available.');
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => const TelegramAuthScreen()),
+      );
+      if (result == null) {
+        setState(() => _loading = false);
+        return; // User cancelled
+      }
+
+      await ref.read(authStateProvider.notifier).socialLogin(
+            provider: 'telegram',
+            token: result, // JSON-encoded Telegram auth data
+            onboardingController: ref.read(needsOnboardingProvider.notifier),
+          );
+    } catch (e) {
+      setState(() => _error = 'Telegram login failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   /// Dev login via POST /api/auth/dev-login
@@ -214,14 +236,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onTap: _loading ? null : _signInWithGoogle,
               ),
 
-              const SizedBox(height: 12),
+              if (Platform.isIOS) ...[
+                const SizedBox(height: 12),
 
-              // Apple button
-              _OAuthButton(
-                label: s.continueWithApple,
-                icon: const Icon(Icons.apple, color: Colors.white, size: 22),
-                onTap: _loading ? null : _signInWithApple,
-              ),
+                // Apple button (iOS only)
+                _OAuthButton(
+                  label: s.continueWithApple,
+                  icon: const Icon(Icons.apple, color: Colors.white, size: 22),
+                  onTap: _loading ? null : _signInWithApple,
+                ),
+              ],
 
               const SizedBox(height: 12),
 
