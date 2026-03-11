@@ -13,6 +13,13 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.chippin.chippin
     scripts:
+      - name: Force refresh provisioning profiles
+        script: |
+          rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/*
+          rm -rf ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*
+          app-store-connect fetch-signing-files com.chippin.chippin \
+            --type IOS_APP_STORE \
+            --create
       - name: Set up code signing settings on Xcode project
         script: |
           cd chippin/ios
