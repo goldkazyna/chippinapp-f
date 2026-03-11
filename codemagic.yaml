@@ -10,38 +10,25 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Set up keychain
+      - name: Set up keychain and certificates
         script: |
           keychain initialize
-      - name: Delete old API profiles and fetch fresh
-        script: |
-          # List and delete all existing App Store profiles for our bundle ID via API
-          app-store-connect list-profiles \
-            --bundle-id-identifier com.chippin.chippin \
-            --profile-type IOS_APP_STORE \
-            --json | python3 -c "
-          import json, sys, subprocess
-          profiles = json.load(sys.stdin)
-          for p in profiles:
-              pid = p.get('id')
-              name = p.get('attributes', {}).get('name', '')
-              print(f'Deleting profile: {name} ({pid})')
-              subprocess.run(['app-store-connect', 'delete-profile', pid])
-          " || true
-          # Now fetch fresh - will create new profile with current capabilities
           app-store-connect fetch-signing-files com.chippin.chippin \
             --type IOS_APP_STORE \
             --platform IOS \
             --strict-match-identifier \
             --create
           keychain add-certificates
-      - name: List fetched profiles
+      - name: Install provisioning profile from repo
         script: |
-          echo "=== Profiles ==="
-          for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
-            echo "--- $(basename "$f") ---"
-            security cms -D -i "$f" | grep -A1 "Name\|com.apple.developer"
-          done
+          # Remove any auto-downloaded profiles
+          rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision
+          # Install our profile with Sign in with Apple capability
+          PROFILE_UUID=$(security cms -D -i chippin/ios/profiles/Chippin_Distribution.mobileprovision | grep -A1 UUID | grep string | sed 's/.*<string>//' | sed 's/<\/string>.*//')
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp chippin/ios/profiles/Chippin_Distribution.mobileprovision \
+            ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
+          echo "Installed profile with UUID: ${PROFILE_UUID}"
       - name: Set up code signing settings on Xcode project
         script: |
           cd chippin/ios
