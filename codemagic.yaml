@@ -21,8 +21,7 @@ workflows:
           app-store-connect fetch-signing-files com.chippin.chippin \
             --type IOS_APP_STORE \
             --platform IOS \
-            --strict-match-identifier \
-            --create
+            --strict-match-identifier
           keychain add-certificates
       - name: List fetched profiles
         script: |
