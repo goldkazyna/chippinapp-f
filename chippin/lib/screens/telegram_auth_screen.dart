@@ -38,7 +38,7 @@ class _TelegramAuthScreenState extends State<TelegramAuthScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse('http://chippinapp.com/telegram-auth'));
+      ..loadRequest(Uri.parse('https://chippinapp.com/telegram-auth.html'));
   }
 
   @override
